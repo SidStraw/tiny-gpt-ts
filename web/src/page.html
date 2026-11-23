@@ -1,0 +1,568 @@
+<title>七關煉成 GPT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版面概念：青綠山水的礦物色配冷調紙底；上方一排印章是地圖，一次只攤開一關，過關就蓋印。 */
+:root {
+  --paper: #e9efec;
+  --surface: #f7faf8;
+  --sunken: #dfe7e3;
+  --ink: #14201d;
+  --ink-soft: #4d5e58;
+  --line: #c3d0ca;
+  --azurite: #1c5a88;
+  --azurite-soft: #d3e3ee;
+  --malachite: #1c7558;
+  --malachite-soft: #d2e9df;
+  --gamboge: #a97708;
+  --gamboge-soft: #f3e6c2;
+  --cinnabar: #bf3a22;
+  --cinnabar-soft: #f5dcd5;
+  --font-display: "LXGW WenKai TC", "Kaiti TC", "BiauKai", "DFKai-SB", "Noto Serif TC", serif;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1716; --surface: #152120; --sunken: #0a1110; --ink: #e2ebe7; --ink-soft: #9bafa8; --line: #2b3d39;
+    --azurite: #74b6e6; --azurite-soft: #16344a; --malachite: #5fcaa3; --malachite-soft: #143a2e;
+    --gamboge: #e5b94c; --gamboge-soft: #3d3112; --cinnabar: #ec6a52; --cinnabar-soft: #45201a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1716; --surface: #152120; --sunken: #0a1110; --ink: #e2ebe7; --ink-soft: #9bafa8; --line: #2b3d39;
+  --azurite: #74b6e6; --azurite-soft: #16344a; --malachite: #5fcaa3; --malachite-soft: #143a2e;
+  --gamboge: #e5b94c; --gamboge-soft: #3d3112; --cinnabar: #ec6a52; --cinnabar-soft: #45201a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+  -webkit-text-size-adjust: 100%;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--azurite); outline-offset: 2px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--sunken); padding: 0.1em 0.35em; border-radius: 3px; }
+
+/* ── 頂端地圖 ── */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--paper); border-bottom: 1px solid var(--line); }
+.top-in {
+  max-width: 900px; margin: 0 auto; padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
+}
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; letter-spacing: 0.04em; white-space: nowrap; }
+.map { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.seal {
+  width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer;
+  font-family: var(--font-display); font-size: 1.2rem; line-height: 1; font-weight: 700;
+  background: transparent; color: var(--ink-soft); border: 1.5px dashed var(--line); border-radius: 3px;
+}
+.seal:hover { border-color: var(--ink-soft); }
+.seal[aria-current="true"] { border-style: solid; border-color: var(--ink); color: var(--ink); }
+.seal.earned { background: var(--cinnabar); color: var(--surface); border: 1.5px solid var(--cinnabar); transform: rotate(-3deg); }
+.seal.earned:nth-child(even) { transform: rotate(2deg); }
+
+/* ── 主欄 ── */
+.wrap {
+  max-width: 900px; margin: 0 auto; padding-block: 28px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.level { display: flex; flex-direction: column; gap: 22px; }
+.eyebrow { font-size: 0.82rem; letter-spacing: 0.14em; color: var(--azurite); font-weight: 700; margin: 0; }
+h1 { font-family: var(--font-display); font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.2; margin: 0; text-wrap: balance; font-weight: 700; }
+h2 { font-family: var(--font-display); font-size: 1.4rem; line-height: 1.35; margin: 14px 0 0; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 0; }
+p { margin: 0; max-width: 40em; }
+.lead { font-size: 1.08rem; color: var(--ink); }
+.muted { color: var(--ink-soft); font-size: 0.9rem; }
+.head { display: flex; flex-direction: column; gap: 10px; }
+.block { display: flex; flex-direction: column; gap: 12px; }
+ul.plain { margin: 0; padding-left: 1.2em; max-width: 40em; display: flex; flex-direction: column; gap: 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.grid2 > * { min-width: 0; }
+.scroll-x { overflow-x: auto; }
+
+/* 試煉：方正的硬邊，和圓角的示範面板區隔 */
+.trial { border: 1.5px solid var(--ink); background: var(--surface); padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px; position: relative; min-width: 0; }
+.trial-tag { align-self: flex-start; background: var(--ink); color: var(--paper); font-family: var(--font-display); font-weight: 700; letter-spacing: 0.2em; padding: 1px 8px 1px 12px; font-size: 0.95rem; }
+.trial-goal { font-weight: 700; }
+.trial .stamp { display: none; }
+.trial.done { border-color: var(--cinnabar); }
+.trial.done .trial-tag { background: var(--cinnabar); }
+.trial.done .stamp {
+  display: grid; place-items: center; position: absolute; top: 10px; right: 12px; width: 62px; height: 62px;
+  font-family: var(--font-display); font-size: 2.2rem; font-weight: 700; line-height: 1;
+  color: var(--cinnabar); border: 3px solid var(--cinnabar); border-radius: 4px; transform: rotate(-6deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .trial.done.fresh .stamp { animation: stamp 0.45s cubic-bezier(.2,1.4,.4,1) both; }
+  @keyframes stamp { from { transform: rotate(-18deg) scale(2.2); opacity: 0; } to { transform: rotate(-6deg) scale(1); opacity: 1; } }
+  .shake { animation: shake 0.3s; }
+  @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+}
+.feedback { min-height: 1.75em; font-size: 0.95rem; }
+.feedback.ok { color: var(--malachite); font-weight: 500; }
+.feedback.no { color: var(--cinnabar); }
+
+/* 控制項 */
+.btn { border: 1px solid var(--ink-soft); background: var(--surface); padding: 6px 14px; border-radius: 4px; cursor: pointer; line-height: 1.4; }
+.btn:hover:not(:disabled) { background: var(--sunken); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 500; }
+.btn.primary:hover:not(:disabled) { background: var(--azurite); border-color: var(--azurite); color: var(--surface); }
+.btn.on { background: var(--azurite-soft); border-color: var(--azurite); color: var(--ink); font-weight: 500; }
+.field { display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; min-width: 0; }
+.field > span { color: var(--ink-soft); }
+.field output { font-family: var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="text"] { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; width: 100%; font-size: 1.05rem; }
+input[type="range"] { width: 100%; accent-color: var(--azurite); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 0.9rem; cursor: pointer; }
+
+/* token 方塊 */
+.toks { display: flex; flex-wrap: wrap; gap: 6px; }
+.tok { display: inline-flex; flex-direction: column; align-items: center; min-width: 40px; padding: 4px 6px 3px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; }
+.tok b { font-family: var(--font-display); font-size: 1.35rem; line-height: 1.3; font-weight: 400; }
+.tok i { font-style: normal; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tok.bad { border-color: var(--cinnabar); background: var(--cinnabar-soft); }
+.tok.bad i { color: var(--cinnabar); }
+button.tok { cursor: pointer; }
+button.tok:hover { border-color: var(--ink-soft); }
+.tok.sel { border-color: var(--gamboge); background: var(--gamboge-soft); box-shadow: 0 0 0 1px var(--gamboge); }
+.tok.merged { border-color: var(--malachite); background: var(--malachite-soft); }
+.tok.masked { opacity: 0.38; border-style: dashed; }
+.tok.query { border-color: var(--gamboge); box-shadow: 0 0 0 2px var(--gamboge); }
+.poem-rows { display: flex; flex-direction: column; gap: 6px; }
+
+.log { font-size: 0.9rem; display: flex; flex-direction: column; gap: 2px; color: var(--ink-soft); }
+.log b { color: var(--ink); }
+
+/* 計算圖 */
+.graph { min-width: 600px; width: 100%; height: auto; display: block; }
+.graph .node rect { fill: var(--paper); stroke: var(--line); stroke-width: 1.2; }
+.graph .node.cur rect { stroke: var(--gamboge); stroke-width: 2.5; fill: var(--gamboge-soft); }
+.graph .node.known rect { stroke: var(--malachite); }
+.graph text { fill: var(--ink); font-family: var(--font-mono); font-size: 13px; }
+.graph .nm { font-weight: 600; font-size: 14px; }
+.graph .gr { fill: var(--malachite); font-weight: 600; }
+.graph .gr.unknown { fill: var(--ink-soft); font-weight: 400; }
+.graph .edge { stroke: var(--ink-soft); stroke-width: 1.3; fill: none; }
+.graph .arrow { fill: var(--ink-soft); }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choices .btn { min-width: 68px; font-family: var(--font-mono); }
+
+canvas { display: block; width: 100%; border-radius: 4px; background: var(--paper); border: 1px solid var(--line); }
+.stat { font-family: var(--font-mono); font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.stat b { color: var(--ink); font-weight: 600; }
+
+/* 機率長條 */
+.bars { display: flex; flex-direction: column; gap: 4px; }
+.bar { display: grid; grid-template-columns: 2.6em 1fr 4.2em; gap: 8px; align-items: center; background: none; border: 0; padding: 2px 0; text-align: left; width: 100%; }
+button.bar { cursor: pointer; border-radius: 4px; }
+button.bar:hover { background: var(--sunken); }
+.bar .ch { font-family: var(--font-display); font-size: 1.25rem; text-align: center; line-height: 1.2; }
+.bar .track { height: 14px; background: var(--sunken); border-radius: 2px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--malachite); border-radius: 2px; }
+.bar.hit .fill { background: var(--gamboge); }
+.bar .pc { font-family: var(--font-mono); font-size: 0.8rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.lens { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.lens > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.lens h3 { font-size: 0.85rem; color: var(--ink-soft); font-weight: 500; }
+
+/* 詩 */
+.poem { font-family: var(--font-display); font-size: clamp(1.5rem, 5vw, 2.1rem); line-height: 1.6; letter-spacing: 0.12em; min-height: 3.2em; }
+.poem .cursor { display: inline-block; width: 0.5em; height: 1em; background: var(--gamboge); vertical-align: -0.12em; }
+.poem .mine { color: var(--azurite); }
+.samples { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-display); font-size: 1.1rem; max-height: 15em; overflow-y: auto; }
+.samples div { display: grid; grid-template-columns: 5.2em 1fr; gap: 10px; }
+.samples span { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft); padding-top: 0.5em; font-variant-numeric: tabular-nums; }
+
+/* 組裝 */
+.pipe { display: flex; flex-direction: column; gap: 4px; counter-reset: pipe; min-height: 44px; }
+.pipe .piece { display: grid; grid-template-columns: 1.6em 1fr auto; gap: 8px; align-items: baseline; padding: 6px 10px; background: var(--malachite-soft); border: 1px solid var(--malachite); border-radius: 4px; }
+.pipe .piece::before { counter-increment: pipe; content: counter(pipe); font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-soft); }
+.pipe .piece small { font-family: var(--font-mono); color: var(--ink-soft); }
+.pipe .empty { color: var(--ink-soft); font-size: 0.9rem; padding: 6px 0; }
+.tray { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 關卡底部 */
+.foot { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.foot .src { font-size: 0.85rem; color: var(--ink-soft); }
+.final-seals { display: flex; gap: 10px; flex-wrap: wrap; }
+.final-seals .seal { width: 54px; height: 54px; font-size: 1.8rem; cursor: default; }
+pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">七關煉成 GPT</div>
+    <nav class="map" id="map" aria-label="關卡地圖"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ═══════════════ 第一關 ═══════════════ -->
+<section class="level" id="guan-1" hidden>
+  <div class="head">
+    <p class="eyebrow">第一關 · TOKENIZER</p>
+    <h1>把字變成數字</h1>
+    <p class="lead">你要從零做出一個會寫五言詩的語言模型。全程七關，每過一關蓋一個印。這一頁跑的就是你專案裡 <code>src/</code> 的那份 TypeScript，沒有用任何機器學習函式庫。</p>
+    <p>第一個問題：模型只會算數字，看不懂字。所以要先把文字切成一塊一塊的 <b>token</b>，再給每個 token 一個編號。</p>
+  </div>
+
+  <div class="block">
+    <h2>一字一號</h2>
+    <p>最直接的切法是一個字一個 token。我們的詩模型就這樣做：把唐詩裡最常見的 2,000 個字排序編號，再留 id 0 給「結束」符號，字表共 2,001 個 token。</p>
+    <div class="panel">
+      <label class="field"><span>輸入任何文字</span><input type="text" id="l1-text" value="春眠不覺曉，AI也寫詩" maxlength="40"></label>
+      <div class="toks" id="l1-tokens"></div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="l1-bytes"> 改看 UTF-8 bytes</label>
+        <span class="muted" id="l1-note"></span>
+      </div>
+    </div>
+    <p>紅色的字不在字表裡，模型完全無法處理。字表開大一點可以收更多字，但模型頭尾兩層的大小和字表成正比，代價很高。</p>
+  </div>
+
+  <div class="block">
+    <h2>GPT 的做法：讓資料決定怎麼切</h2>
+    <p>勾選上面的「改看 UTF-8 bytes」：任何文字在電腦裡都是 0 到 255 的 byte，一個中文字是 3 個。<b>BPE</b>（Byte Pair Encoding）從 byte 出發，反覆做一件事：</p>
+    <ul class="plain">
+      <li>數一數每一對「相鄰的 token」出現幾次。</li>
+      <li>把最常出現的那一對合併成一個新 token。</li>
+    </ul>
+    <p>常見的字詞會漸漸合併成單一 token，罕見的字則留在碎片狀態。因為最差也能退回 byte，所以永遠不會有「字表外」的字。</p>
+  </div>
+
+  <div class="trial" id="trial-1">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">字</span>
+    <p class="trial-goal">你來當 BPE：答對三次「下一步該合併哪一對」。</p>
+    <p class="muted">為了好讀，這裡從「字」開始合併（真正的 BPE 從 byte 開始）。點一個 token 會選取它和右邊那個。</p>
+    <div class="toks" id="l1-bpe"></div>
+    <div class="row">
+      <button class="btn primary" id="l1-merge">合併選取的這一對</button>
+      <button class="btn" id="l1-reset">重來</button>
+      <span class="stat" id="l1-count"></span>
+    </div>
+    <div class="feedback" id="l1-fb"></div>
+    <div class="log" id="l1-log"></div>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/tokenizer.ts</code>　文件 <code>docs/03-tokenizer.md</code></span>
+    <button class="btn primary" data-go="2">下一關：反向傳播</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第二關 ═══════════════ -->
+<section class="level" id="guan-2" hidden>
+  <div class="head">
+    <p class="eyebrow">第二關 · AUTOGRAD</p>
+    <h1>讓電腦自己算微分</h1>
+    <p class="lead">模型是一台有二十幾萬個旋鈕的機器。訓練時我們需要知道：每個旋鈕往上轉一點，誤差會變大還是變小？這個數字叫<b>梯度</b>。</p>
+    <p>訣竅是把任何算式拆成加、乘這類簡單運算，記成一張<b>計算圖</b>。每個簡單運算的微分都很容易，再用連鎖律一路乘回去。</p>
+  </div>
+
+  <div class="block">
+    <h2>一張計算圖</h2>
+    <p>下面是 <code>L = (a × b + c)²</code>。拉動滑桿，值由左往右算過去，這叫 forward。</p>
+    <div class="panel">
+      <div class="scroll-x"><svg class="graph" id="l2-graph" viewBox="0 0 680 250" role="img" aria-label="計算圖：a 乘 b 得 d，d 加 c 得 e，e 平方得 L"></svg></div>
+      <div class="grid2">
+        <label class="field"><span>a = <output id="l2-a-out"></output></span><input type="range" id="l2-a" min="-4" max="4" step="1" value="2"></label>
+        <label class="field"><span>b = <output id="l2-b-out"></output></span><input type="range" id="l2-b" min="-4" max="4" step="1" value="-3"></label>
+        <label class="field"><span>c = <output id="l2-c-out"></output></span><input type="range" id="l2-c" min="-10" max="10" step="1" value="10"></label>
+      </div>
+    </div>
+    <p>反向傳播（backward）則由右往左：從 <code>∂L/∂L = 1</code> 出發，每退一步，就把「上游傳來的梯度」乘上「這一步的局部導數」。只要記兩條規則：</p>
+    <ul class="plain">
+      <li><b>加法</b>把梯度原封不動分給兩邊。</li>
+      <li><b>乘法</b>把梯度乘上「對方的值」再傳過去。</li>
+    </ul>
+  </div>
+
+  <div class="trial" id="trial-2">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">導</span>
+    <p class="trial-goal">親手做一次反向傳播：依序算出五個節點的梯度。</p>
+    <p class="muted">黃色的節點是現在要算的。算完後會用 <code>src/value.ts</code> 的引擎對答案。</p>
+    <p id="l2-q" class="mono"></p>
+    <div class="choices" id="l2-choices"></div>
+    <div class="feedback" id="l2-fb"></div>
+    <div class="row"><button class="btn" id="l2-new">換一組數字</button></div>
+  </div>
+
+  <div class="block">
+    <h2>為什麼這招這麼重要</h2>
+    <p>你剛才每個節點只算了一次，後面算好的梯度直接被前面重複利用。所以不管有多少參數，一次 forward 加一次 backward 就能拿到<b>全部</b>的梯度。少了它，二十幾萬個參數得一個一個試，訓練永遠跑不完。</p>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/value.ts</code>、<code>src/tensor.ts</code>　文件 <code>docs/01-autograd.md</code></span>
+    <button class="btn primary" data-go="3">下一關：梯度下降</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第三關 ═══════════════ -->
+<section class="level" id="guan-3" hidden>
+  <div class="head">
+    <p class="eyebrow">第三關 · OPTIMIZER</p>
+    <h1>順著梯度下山</h1>
+    <p class="lead">有了梯度，更新規則只有一行：<code>w ← w − 學習率 × 梯度</code>。梯度指向誤差上升最快的方向，所以往反方向走。</p>
+    <p>先用最小的例子體會：用一條直線 <code>y = w·x + b</code> 去貼合五個點。只有 <code>w</code>、<code>b</code> 兩個參數，可以把誤差（loss）直接畫成地形圖。</p>
+  </div>
+
+  <div class="block">
+    <div class="panel">
+      <div class="grid2">
+        <div class="block"><h3>Loss 地形（顏色越深越低，✕ 是谷底）</h3><canvas id="l3-land" height="300"></canvas></div>
+        <div class="block"><h3>目前的直線</h3><canvas id="l3-fit" height="300"></canvas></div>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>學習率 <output id="l3-lr-out"></output></span><input type="range" id="l3-lr" min="0" max="100" step="1" value="24"></label>
+        <div class="row">
+          <button class="btn on" id="l3-sgd">梯度下降</button>
+          <button class="btn" id="l3-adam">Adam</button>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="l3-step">走一步</button>
+        <button class="btn" id="l3-auto">自動走</button>
+        <button class="btn" id="l3-reset">回到起點</button>
+      </div>
+      <div class="stat" id="l3-stat"></div>
+    </div>
+    <p>試試極端值。學習率太小，走幾十步還在半山腰。太大，每一步都跨過谷底、落在對面更高的地方，越跳越遠，這叫<b>發散</b>。</p>
+    <p>這個山谷又窄又長：陡的方向只能走小步，平緩的方向卻需要大步。<b>Adam</b> 為每個參數各自記錄「梯度通常多大」，自動幫陡的方向縮小步伐、幫平緩的方向放大。我們的模型用的就是它。切過去比較看看路徑。</p>
+  </div>
+
+  <div class="trial" id="trial-3">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">降</span>
+    <p class="trial-goal">從起點出發，在 30 步以內把 loss 降到 0.1 以下。</p>
+    <p class="muted">用上面的面板操作。每次失敗就回到起點，換一個學習率。過關後換另一種方法再試：梯度下降能過關的學習率範圍很窄，Adam 寬得多。</p>
+    <div class="feedback" id="l3-fb"></div>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/optim.ts</code>　文件 <code>docs/05-training.md</code></span>
+    <button class="btn primary" data-go="4">下一關：Attention</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第四關 ═══════════════ -->
+<section class="level" id="guan-4" hidden>
+  <div class="head">
+    <p class="eyebrow">第四關 · ATTENTION</p>
+    <h1>讓每個字回頭看</h1>
+    <p class="lead">進入模型後，每個 token 先查表換成一個 64 維的向量（embedding）。這時每個向量只知道自己是誰。要預測下一個字，必須知道前面寫了什麼。</p>
+    <p><b>Attention</b> 是模型裡唯一讓 token 互相交換資訊的地方。每個 token 發出一個 <b>query</b>（我在找什麼），和前面每個 token 的 <b>key</b>（我有什麼）做內積算出分數，分數經 softmax 變成權重，再照權重把大家的 <b>value</b> 加權平均收進來。</p>
+  </div>
+
+  <div class="block">
+    <h2>看看訓練好的模型在看哪裡</h2>
+    <p>下面是一個已經訓練 3,000 步的模型（2 層，每層 4 個 head）。點任何一個字，藍色越深表示它把越多注意力放在那個字上。</p>
+    <div class="panel">
+      <div class="row" id="l4-poems"></div>
+      <div class="poem-rows" id="l4-toks"></div>
+      <div class="row" id="l4-heads"></div>
+      <div class="grid2">
+        <div class="block"><h3 id="l4-title"></h3><div class="bars" id="l4-top"></div></div>
+        <div class="block"><h3>整張注意力矩陣（列：誰在看　行：看誰）</h3><canvas id="l4-heat" height="260"></canvas></div>
+      </div>
+    </div>
+    <p>矩陣的右上半永遠是空的。那是 <b>causal mask</b>：每個字只准看自己和前面的字。訓練時整首詩一次餵進去，每個位置都要預測下一個字；如果看得到後面，直接抄答案就好，什麼也學不到。虛線框的字就是被遮住的。</p>
+    <p>換幾個 head 看看。每個 head 各有自己的 query 和 key，會學到不同的「看法」。這些分工沒有人設計，是訓練自己長出來的。</p>
+  </div>
+
+  <div class="trial" id="trial-4">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">注</span>
+    <p class="trial-goal" id="l4-goal"></p>
+    <p class="muted">用上面的面板切換各個 head、多點幾個字觀察，選定後按下確認。</p>
+    <div class="row"><button class="btn primary" id="l4-answer">就是現在選的這個 head</button></div>
+    <div class="feedback" id="l4-fb"></div>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/gpt.ts</code> 的 <code>CausalSelfAttention</code>　文件 <code>docs/04-gpt.md</code></span>
+    <button class="btn primary" data-go="5">下一關：組裝 Transformer</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第五關 ═══════════════ -->
+<section class="level" id="guan-5" hidden>
+  <div class="head">
+    <p class="eyebrow">第五關 · TRANSFORMER</p>
+    <h1>把零件疊起來</h1>
+    <p class="lead">整個模型的主幹是一個 <code>[T, C]</code> 的矩陣：T 個 token，每個 token 一個 C 維向量。把它想成一塊共用的白板，每一層讀取上面的內容，再把新的資訊<b>加</b>上去。</p>
+    <ul class="plain">
+      <li><b>Attention</b>：在 token 之間搬資訊（上一關）。</li>
+      <li><b>MLP</b>：對每個 token 各自做非線性運算，消化搬來的資訊。</li>
+      <li><b>殘差連接</b>：子層的輸出是「加回」主幹，不是取代。梯度因此有一條全是加法的直達通道。</li>
+      <li><b>LayerNorm</b>：進每個子層之前先把向量標準化，數值才不會越疊越失控。</li>
+    </ul>
+  </div>
+
+  <div class="trial" id="trial-5">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">疊</span>
+    <p class="trial-goal">依照資料流動的順序，把九個零件排成一個（單層的）GPT。</p>
+    <p class="muted">從下方挑下一個零件。這就是 <code>GPT.forward</code> 和 <code>Block.forward</code> 的內容。</p>
+    <div class="pipe" id="l5-pipe"></div>
+    <div class="tray" id="l5-tray"></div>
+    <div class="feedback" id="l5-fb"></div>
+    <div class="row"><button class="btn" id="l5-reset">重排</button></div>
+  </div>
+
+  <div class="block">
+    <h2>看預測一層一層成形</h2>
+    <p>最後一步是把向量和 embedding 表裡每個字的向量做內積，分數最高的就是模型認為最可能的下一個字。這個動作其實可以提早做：把白板在每一層之後的內容直接拿去比對，就能偷看模型「目前的想法」。</p>
+    <div class="panel">
+      <label class="field"><span>詩的開頭（模型要預測下一個字）</span><input type="text" id="l5-text" value="春眠不覺曉，處處聞啼" maxlength="23"></label>
+      <div class="lens" id="l5-lens"></div>
+      <p class="muted" id="l5-note"></p>
+    </div>
+    <p>剛查完 embedding 時，模型只知道最後一個字是什麼。每經過一層，前文的資訊被搬進來、被消化，預測就更有把握。</p>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/gpt.ts</code>、<code>src/nn.ts</code>　文件 <code>docs/04-gpt.md</code></span>
+    <button class="btn primary" data-go="6">下一關：訓練</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第六關 ═══════════════ -->
+<section class="level" id="guan-6" hidden>
+  <div class="head">
+    <p class="eyebrow">第六關 · TRAINING</p>
+    <h1>開始訓練</h1>
+    <p class="lead">零件都齊了。訓練資料不需要人工標註：答案就是同一首詩往後移一格。看到「春」要猜「眠」，看到「春眠」要猜「不」。</p>
+    <p>誤差用 <b>cross-entropy</b> 衡量：模型給正確答案的機率取 −log。字表有 1,001 個字時，完全亂猜的 loss 是 <code>ln(1001) ≈ 6.91</code>。每一步做四件事：forward 算 loss、backward 算梯度、裁剪過大的梯度、Adam 更新參數。</p>
+  </div>
+
+  <div class="block">
+    <h2>在你的瀏覽器裡訓練一個模型</h2>
+    <p>這是一個全新的小模型（1 層、32 維），參數全是亂數。資料是 3,021 首五言詩，其中一成留作<b>驗證集</b>不參與訓練，用來確認模型是學會了規律、不只是把詩背起來。</p>
+    <div class="panel">
+      <canvas id="l6-chart" height="260"></canvas>
+      <div class="stat" id="l6-stat"></div>
+      <div class="grid2">
+        <label class="field"><span>學習率 <output id="l6-lr-out"></output></span><input type="range" id="l6-lr" min="0" max="5" step="1" value="1"></label>
+        <div class="row">
+          <button class="btn primary" id="l6-run">開始訓練 300 步</button>
+          <button class="btn" id="l6-reset">換一顆全新的模型</button>
+        </div>
+      </div>
+      <h3>模型每隔 25 步寫的詩（最新的在上面）</h3>
+      <div class="samples" id="l6-samples"><div><span>尚未開始</span><em class="muted">按下開始，看它從亂碼學到格式</em></div></div>
+    </div>
+    <p>留意樣本的變化：先是亂碼，接著逗號和句號出現在對的位置（它學會了五個字一句），然後開始出現像樣的詞。</p>
+  </div>
+
+  <div class="trial" id="trial-6">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">煉</span>
+    <p class="trial-goal">在 300 步以內，把驗證 loss 壓到 4.9 以下。</p>
+    <p class="muted">預設的學習率太保守了。太高又會學不起來。每次重來都要換一顆全新的模型。</p>
+    <div class="feedback" id="l6-fb"></div>
+  </div>
+
+  <div class="block">
+    <h2>大模型的訓練紀錄</h2>
+    <p>前後幾關用的那個模型比較大（2 層、64 維、字表 2,001），是在終端機用 <code>pnpm train</code> 跑 3,000 步得到的。拖動滑桿，看它在各個階段寫出的詩。</p>
+    <div class="panel">
+      <canvas id="l6-big" height="220"></canvas>
+      <label class="field"><span id="l6-hist-label"></span><input type="range" id="l6-hist" min="0" max="0" step="1" value="0"></label>
+      <div class="poem" id="l6-hist-poem" style="font-size:1.4rem;min-height:0"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/trainer.ts</code>、<code>src/data.ts</code>　文件 <code>docs/05-training.md</code></span>
+    <button class="btn primary" data-go="7">最後一關：生成</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 第七關 ═══════════════ -->
+<section class="level" id="guan-7" hidden>
+  <div class="head">
+    <p class="eyebrow">第七關 · GENERATION</p>
+    <h1>一個字一個字寫</h1>
+    <p class="lead">訓練好的模型只會做一件事：給它目前的文字，它回傳下一個字的機率分布。寫詩就是反覆做：預測、抽一個字、接上去、再預測。</p>
+    <p>LLM 的回應一個字一個字出現，是因為它真的就是這樣算出來的。</p>
+  </div>
+
+  <div class="block">
+    <div class="panel">
+      <div class="poem" id="l7-poem"></div>
+      <div class="grid2">
+        <div class="block">
+          <h3>下一個字的機率（點長條可以自己選）</h3>
+          <div class="bars" id="l7-bars"></div>
+        </div>
+        <div class="block">
+          <label class="field"><span>開頭（可留空）</span><input type="text" id="l7-prompt" value="" maxlength="5" placeholder="例如：明月"></label>
+          <label class="field"><span>Temperature <output id="l7-temp-out"></output></span><input type="range" id="l7-temp" min="0" max="200" step="5" value="80"></label>
+          <label class="field"><span>Top-k <output id="l7-topk-out"></output></span><input type="range" id="l7-topk" min="1" max="100" step="1" value="40"></label>
+          <div class="row">
+            <button class="btn primary" id="l7-one">抽一個字</button>
+            <button class="btn" id="l7-all">寫到結束</button>
+            <button class="btn" id="l7-reset">重寫</button>
+          </div>
+          <div class="feedback" id="l7-fb"></div>
+        </div>
+      </div>
+    </div>
+    <p><b>Temperature</b> 在 softmax 之前把分數除以一個數。調低，差距被放大，模型只選最有把握的字，通順但老套；調到 0 就永遠選第一名。調高，分布變平，用字大膽但容易不通。</p>
+    <p><b>Top-k</b> 只留前 k 名。字表有兩千個字，冷門字的機率加起來並不小，砍掉長尾可以避免抽到離譜的字。</p>
+    <p>注意整個迴圈裡沒有任何一步在檢查內容的真假。模型只負責「接下來什麼看起來合理」。它寫的詩格式工整、用字像唐詩，但全是編的。這就是幻覺（hallucination）的來源，生成式模型本來就是這樣運作。</p>
+  </div>
+
+  <div class="trial" id="trial-7">
+    <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">詩</span>
+    <p class="trial-goal">和模型合寫一首詩：至少親手選三個字，把整首寫完。</p>
+    <p class="muted">點機率長條就是親手選字，藍色的字是你選的。其餘的字按「抽一個字」交給模型。</p>
+    <div class="feedback" id="l7-trial-fb"></div>
+  </div>
+
+  <div class="foot">
+    <span class="src">原始碼 <code>src/gpt.ts</code> 的 <code>generate</code>　文件 <code>docs/06-generation.md</code></span>
+    <button class="btn primary" data-go="8">結語</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 結語 ═══════════════ -->
+<section class="level" id="chushi" hidden>
+  <div class="head">
+    <p class="eyebrow">結語</p>
+    <h1 id="fin-title">七關走完了</h1>
+    <div class="final-seals" id="fin-seals"></div>
+    <p class="lead" id="fin-lead"></p>
+  </div>
+  <div class="block">
+    <h2>你走過的路，就是一個 LLM 的全部</h2>
+    <ul class="plain">
+      <li>文字先變成 token，再變成向量。</li>
+      <li>向量經過幾層 attention 和 MLP，變成對下一個 token 的預測。</li>
+      <li>預測和答案的差距是 loss；反向傳播算出每個參數的梯度；Adam 照著梯度更新。</li>
+      <li>重複幾千次，然後一個字一個字抽樣。</li>
+    </ul>
+    <p>真正的 LLM 用的是同一套演算法，差別在規模：參數從 23 萬變成數千億，資料從一萬五千首詩變成數兆個 token。</p>
+  </div>
+  <div class="block">
+    <h2>接下來</h2>
+    <p>回到終端機，親手跑一次，再打開原始碼對照文件讀。</p>
+    <pre>pnpm test                        # 55 個測試，含所有梯度的數值驗證
+pnpm train                       # 訓練 3,000 步，約 25 分鐘
+pnpm generate -- --prompt 明月    # 用訓練好的模型寫詩</pre>
+    <p><code>docs/07-from-toy-to-real.md</code> 的最後有 11 道練習題，從換資料集、加 top-p 抽樣，到實作 KV cache 和 WebGPU 加速。</p>
+  </div>
+  <div class="foot"><span class="src">文件從 <code>docs/00-overview.md</code> 開始</span><button class="btn" data-go="1">回到第一關</button></div>
+</section>
+
+</main>

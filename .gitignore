@@ -1,0 +1,5 @@
+node_modules
+data/raw
+checkpoints/*.log
+web/dist/artifact.html
+.DS_Store

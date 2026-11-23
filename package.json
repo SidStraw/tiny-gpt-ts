@@ -1,0 +1,30 @@
+{
+  "name": "tiny-gpt-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "從零開始、不靠任何機器學習函式庫，用 TypeScript 寫出的迷你 GPT",
+  "scripts": {
+    "prepare-data": "node scripts/prepare-data.ts",
+    "train": "node src/cli/train.ts",
+    "generate": "node src/cli/generate.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:web": "node scripts/build-web.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "packageManager": "pnpm@10.33.2"
+}
