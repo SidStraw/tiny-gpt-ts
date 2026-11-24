@@ -282,6 +282,7 @@ pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14
     <p>下面是一台只有四個旋鈕的小機器。它分三步算出結果 L：先算 <code>d = a × b</code>，再算 <code>e = d + c</code>，最後 <code>L = e × k</code>。拉滑桿可以改數字。</p>
     <div class="panel">
       <div class="scroll-x"><svg class="graph" id="l2-graph" viewBox="0 0 680 275" role="img" aria-label="計算圖：a 乘 b 得 d，d 加 c 得 e，e 乘 k 得 L"></svg></div>
+      <p class="muted">每格的「梯度 ？」是空格，等你在下方的試煉一格一格填上，黃色那格是下一題。只有 L 已經填好：L 自己加 1，L 當然就多 1，所以它的梯度是 1。想先偷看答案，用下面的「加 1」實驗。</p>
       <div class="grid2">
         <label class="field"><span>a = <output id="l2-a-out"></output></span><input type="range" id="l2-a" min="-4" max="4" step="1" value="2"></label>
         <label class="field"><span>b = <output id="l2-b-out"></output></span><input type="range" id="l2-b" min="-4" max="4" step="1" value="-3"></label>
