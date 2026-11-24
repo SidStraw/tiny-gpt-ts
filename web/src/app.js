@@ -306,34 +306,41 @@ INIT[1] = () => {
 
 INIT[2] = () => {
   const svg = $('#l2-graph'), fb = $('#l2-fb'), question = $('#l2-q'), choices = $('#l2-choices')
-  const sliders = { a: $('#l2-a'), b: $('#l2-b'), c: $('#l2-c') }
+  const nudge = $('#l2-nudge'), nudgeOut = $('#l2-nudge-out')
+  const INPUTS = ['a', 'b', 'c', 'k']
+  const sliders = Object.fromEntries(INPUTS.map((key) => [key, $('#l2-' + key)]))
   const BOX = { w: 132, h: 62 }
   const NODES = {
     a: { x: 14, y: 12, label: 'a' },
     b: { x: 14, y: 94, label: 'b' },
-    c: { x: 14, y: 176, label: 'c' },
     d: { x: 196, y: 53, label: 'd = a × b' },
-    e: { x: 378, y: 115, label: 'e = d + c' },
-    L: { x: 540, y: 115, label: 'L = e²' },
+    c: { x: 196, y: 150, label: 'c' },
+    e: { x: 378, y: 100, label: 'e = d + c' },
+    k: { x: 378, y: 200, label: 'k' },
+    L: { x: 540, y: 150, label: 'L = e × k' },
   }
-  const EDGES = [['a', 'd'], ['b', 'd'], ['d', 'e'], ['c', 'e'], ['e', 'L']]
+  const EDGES = [['a', 'd'], ['b', 'd'], ['d', 'e'], ['c', 'e'], ['e', 'L'], ['k', 'L']]
   const STEPS = [
-    { node: 'e', up: 'L', local: (v) => 2 * v.e, rule: 'L = e²，局部導數是 2e' },
-    { node: 'd', up: 'e', local: () => 1, rule: 'e = d + c，加法把梯度原封不動傳過來' },
-    { node: 'c', up: 'e', local: () => 1, rule: 'e = d + c，加法把梯度原封不動傳過來' },
-    { node: 'a', up: 'd', local: (v) => v.b, rule: 'd = a × b，乘法的局部導數是「對方的值」b' },
-    { node: 'b', up: 'd', local: (v) => v.a, rule: 'd = a × b，乘法的局部導數是「對方的值」a' },
+    { node: 'e', up: 'L', local: (v) => v.k, why: 'L = e × k 是乘法，e 多 1，L 就多一個 k' },
+    { node: 'k', up: 'L', local: (v) => v.e, why: 'L = e × k 是乘法，k 多 1，L 就多一個 e' },
+    { node: 'd', up: 'e', local: () => 1, why: 'e = d + c 是加法，d 多 1，e 就多 1' },
+    { node: 'c', up: 'e', local: () => 1, why: 'e = d + c 是加法，c 多 1，e 就多 1' },
+    { node: 'a', up: 'd', local: (v) => v.b, why: 'd = a × b 是乘法，a 多 1，d 就多一個 b' },
+    { node: 'b', up: 'd', local: (v) => v.a, why: 'd = a × b 是乘法，b 多 1，d 就多一個 a' },
   ]
   let values, truth, revealed, stepIndex
 
-  const compute = () => {
-    // 用專案裡的 Value 引擎做 forward 與 backward，當作標準答案
-    const a = new T.Value(Number(sliders.a.value)), b = new T.Value(Number(sliders.b.value)), c = new T.Value(Number(sliders.c.value))
-    const d = a.mul(b), e = d.add(c), L = e.pow(2)
+  // 用專案裡的 Value 引擎做 forward 與 backward，當作標準答案
+  const run = (input) => {
+    const a = new T.Value(input.a), b = new T.Value(input.b), c = new T.Value(input.c), k = new T.Value(input.k)
+    const d = a.mul(b), e = d.add(c), L = e.mul(k)
     L.backward()
-    values = { a: a.data, b: b.data, c: c.data, d: d.data, e: e.data, L: L.data }
-    truth = { a: a.grad, b: b.grad, c: c.grad, d: d.grad, e: e.grad, L: 1 }
+    return {
+      values: { a: a.data, b: b.data, c: c.data, k: k.data, d: d.data, e: e.data, L: L.data },
+      grads: { a: a.grad, b: b.grad, c: c.grad, k: k.grad, d: d.grad, e: e.grad, L: 1 },
+    }
   }
+  const inputs = () => Object.fromEntries(INPUTS.map((key) => [key, Number(sliders[key].value)]))
 
   const draw = () => {
     const currentNode = STEPS[stepIndex]?.node
@@ -359,62 +366,85 @@ INIT[2] = () => {
     choices.replaceChildren()
     const step = STEPS[stepIndex]
     if (!step) {
-      question.textContent = '全部算完了。'
+      question.textContent = '六個梯度都算完了。'
       return
     }
     const upstream = revealed[step.up], local = step.local(values), answer = truth[step.node]
-    question.textContent = `∂L/∂${step.node} = ？　（上游 ∂L/∂${step.up} = ${num(upstream)}）`
-    // 干擾選項：只取局部導數、只取上游梯度、正負號弄反……
+    question.textContent = `${step.node} 的梯度是多少？也就是：${step.node} 加 1，L 會變多少？`
+    // 干擾選項：只算了一半、正負號弄反……
     const pool = [answer, local, upstream, -answer, upstream + local, answer + 1, answer * 2, 0, answer - 2]
     const options = [...new Set(pool)].slice(0, 3)
     for (let i = options.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[options[i], options[j]] = [options[j], options[i]]
     }
+    const explain = step.up === 'L'
+      ? `${step.why}，也就是多 ${num(local)}。L 就是最後的結果，它自己的梯度是 1`
+      : `${step.why}${local === 1 ? '' : `，也就是多 ${num(local)}`}。而 ${step.up} 每多 1，L 多 ${num(upstream)}`
     for (const option of options) {
       choices.append(h('button', {
         type: 'button', class: 'btn', text: num(option),
         onclick: () => {
           if (option !== answer) {
             shake(choices)
-            return feedback(fb, 'no', '再想想：這個節點的梯度 = 上游傳來的梯度 × 這一步的局部導數。')
+            return feedback(fb, 'no', `提示：${explain}。把這兩個數字乘起來。`)
           }
           revealed[step.node] = answer
           stepIndex++
-          feedback(fb, 'ok', `${step.rule}：${num(upstream)} × ${num(local)} = ${num(answer)}`)
+          const done = stepIndex >= STEPS.length
+          feedback(fb, 'ok', `${explain}。所以 ${num(local)} × ${num(upstream)} = ${num(answer)}。` + (done ? '六個梯度都和 value.ts 引擎算出的一致，過關。' : ''))
           draw()
           ask()
-          if (stepIndex >= STEPS.length) {
-            feedback(fb, 'ok', `${step.rule}：${num(upstream)} × ${num(local)} = ${num(answer)}。五個梯度都和 value.ts 引擎算出的一致，過關。`)
-            pass(2)
-          }
+          if (done) pass(2)
         },
       }))
     }
   }
 
   const restart = () => {
-    // e = 0 時所有梯度都是 0，題目會失去意義，稍微挪一下 c
+    // 避開會讓梯度全變成 0 的組合，題目才有意義
+    if (Number(sliders.k.value) === 0) sliders.k.value = '1'
     if (Number(sliders.a.value) * Number(sliders.b.value) + Number(sliders.c.value) === 0) {
       sliders.c.value = String(Number(sliders.c.value) + 1)
     }
-    for (const key of ['a', 'b', 'c']) $(`#l2-${key}-out`).textContent = num(Number(sliders[key].value))
-    compute()
+    for (const key of INPUTS) $(`#l2-${key}-out`).textContent = num(Number(sliders[key].value))
+    const result = run(inputs())
+    values = result.values
+    truth = result.grads
     revealed = { L: 1 }
     stepIndex = 0
     feedback(fb, '', '')
+    feedback(nudgeOut, '', '按一個按鈕試試。')
     draw()
     ask()
   }
 
+  // 笨方法：真的把輸入加 1，整個重算一遍
+  nudge.replaceChildren(
+    ...INPUTS.map((key) =>
+      h('button', {
+        type: 'button', class: 'btn', text: `${key} 加 1`,
+        onclick: () => {
+          const before = inputs()
+          const after = run({ ...before, [key]: before[key] + 1 }).values.L
+          const change = after - values.L
+          feedback(nudgeOut, 'ok', `${key} 從 ${num(before[key])} 變成 ${num(before[key] + 1)}，L 從 ${num(values.L)} 變成 ${num(after)}，${change === 0 ? '沒有變' : change > 0 ? `多了 ${num(change)}` : `少了 ${num(-change)}`}。所以 ${key} 的梯度是 ${num(change)}。`)
+        },
+      }),
+    ),
+  )
+
   for (const slider of Object.values(sliders)) slider.addEventListener('input', restart)
   $('#l2-new').addEventListener('click', () => {
     const pick = (min, max) => String(min + Math.floor(Math.random() * (max - min + 1)))
-    let a = '0', b = '0'
-    while (a === '0') a = pick(-4, 4)
-    while (b === '0') b = pick(-4, 4)
-    sliders.a.value = a
-    sliders.b.value = b
+    const nonZero = (min, max) => {
+      let value = '0'
+      while (value === '0') value = pick(min, max)
+      return value
+    }
+    sliders.a.value = nonZero(-4, 4)
+    sliders.b.value = nonZero(-4, 4)
+    sliders.k.value = nonZero(-4, 4)
     sliders.c.value = pick(-6, 6)
     restart()
   })
@@ -524,8 +554,8 @@ INIT[3] = () => {
     stat.replaceChildren(
       h('span', {}, '步數 ', h('b', { text: String(state.steps) })),
       h('span', {}, 'loss ', h('b', { text: g.loss < 1e4 ? g.loss.toFixed(4) : g.loss.toExponential(1) })),
-      h('span', {}, '∂L/∂w ', h('b', { text: g.gw.toFixed(2) })),
-      h('span', {}, '∂L/∂b ', h('b', { text: g.gb.toFixed(2) })),
+      h('span', {}, 'w 的梯度 ', h('b', { text: g.gw.toFixed(2) })),
+      h('span', {}, 'b 的梯度 ', h('b', { text: g.gb.toFixed(2) })),
     )
     lrOut.textContent = lr().toFixed(3)
   }

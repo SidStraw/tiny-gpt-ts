@@ -267,34 +267,50 @@ pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14
 <section class="level" id="guan-2" hidden>
   <div class="head">
     <p class="eyebrow">第二關 · AUTOGRAD</p>
-    <h1>讓電腦自己算微分</h1>
-    <p class="lead">模型是一台有二十幾萬個旋鈕的機器。訓練時我們需要知道：每個旋鈕往上轉一點，誤差會變大還是變小？這個數字叫<b>梯度</b>。</p>
-    <p>訣竅是把任何算式拆成加、乘這類簡單運算，記成一張<b>計算圖</b>。每個簡單運算的微分都很容易，再用連鎖律一路乘回去。</p>
+    <h1>哪個旋鈕該往哪邊轉</h1>
+    <p class="lead">這一關不需要微積分。只需要加法、乘法，和一個問題：<b>「這個數字加 1，最後的結果會變多少？」</b></p>
+    <p>模型是一台有二十幾萬個旋鈕的機器，最後會算出一個分數，代表它猜得有多差。訓練就是調旋鈕，讓分數變小。所以對每個旋鈕，我們都要問上面那個問題。這個「會變多少」有個名字，叫<b>梯度</b>。</p>
+    <ul class="plain">
+      <li>梯度是 <b>+3</b>：這個數字加 1，結果會多 3。想讓結果變小，就把它調小。</li>
+      <li>梯度是 <b>−6</b>：這個數字加 1，結果會少 6。想讓結果變小，就把它調大。</li>
+      <li>梯度是 <b>0</b>：怎麼調都沒影響。</li>
+    </ul>
   </div>
 
   <div class="block">
-    <h2>一張計算圖</h2>
-    <p>下面是 <code>L = (a × b + c)²</code>。拉動滑桿，值由左往右算過去，這叫 forward。</p>
+    <h2>笨方法：真的加 1 試試看</h2>
+    <p>下面是一台只有四個旋鈕的小機器。它分三步算出結果 L：先算 <code>d = a × b</code>，再算 <code>e = d + c</code>，最後 <code>L = e × k</code>。拉滑桿可以改數字。</p>
     <div class="panel">
-      <div class="scroll-x"><svg class="graph" id="l2-graph" viewBox="0 0 680 250" role="img" aria-label="計算圖：a 乘 b 得 d，d 加 c 得 e，e 平方得 L"></svg></div>
+      <div class="scroll-x"><svg class="graph" id="l2-graph" viewBox="0 0 680 275" role="img" aria-label="計算圖：a 乘 b 得 d，d 加 c 得 e，e 乘 k 得 L"></svg></div>
       <div class="grid2">
         <label class="field"><span>a = <output id="l2-a-out"></output></span><input type="range" id="l2-a" min="-4" max="4" step="1" value="2"></label>
         <label class="field"><span>b = <output id="l2-b-out"></output></span><input type="range" id="l2-b" min="-4" max="4" step="1" value="-3"></label>
         <label class="field"><span>c = <output id="l2-c-out"></output></span><input type="range" id="l2-c" min="-10" max="10" step="1" value="10"></label>
+        <label class="field"><span>k = <output id="l2-k-out"></output></span><input type="range" id="l2-k" min="-4" max="4" step="1" value="2"></label>
       </div>
+      <h3>實驗：把其中一個加 1，看 L 變多少</h3>
+      <div class="row" id="l2-nudge"></div>
+      <div class="feedback" id="l2-nudge-out">按一個按鈕試試。</div>
     </div>
-    <p>反向傳播（backward）則由右往左：從 <code>∂L/∂L = 1</code> 出發，每退一步，就把「上游傳來的梯度」乘上「這一步的局部導數」。只要記兩條規則：</p>
+    <p>這樣試出來的數字就是梯度，一定正確。問題是每試一個旋鈕，整台機器就要重算一遍。四個旋鈕還好，二十幾萬個就得重算二十幾萬遍，而這只是訓練的<b>一步</b>。</p>
+  </div>
+
+  <div class="block">
+    <h2>聰明方法：從結果往回推</h2>
+    <p>機器的每一步都只是加法或乘法，而這兩種運算「加 1 會變多少」一眼就看得出來：</p>
     <ul class="plain">
-      <li><b>加法</b>把梯度原封不動分給兩邊。</li>
-      <li><b>乘法</b>把梯度乘上「對方的值」再傳過去。</li>
+      <li><b>加法</b> <code>e = d + c</code>：d 多 1，e 就剛好多 1。</li>
+      <li><b>乘法</b> <code>d = a × b</code>：a 多 1，d 就多了一個 b。（3 × 5 變成 4 × 5，多了一個 5。）</li>
     </ul>
+    <p>接著把影響一路<b>乘</b>回去。假設已經知道「e 每多 1，L 多 2」，而「d 多 1 會讓 e 多 1」，那 d 多 1 就讓 L 多 1 × 2 = 2。再往前：「a 多 1 會讓 d 多 −3」，所以 a 多 1 讓 L 多 −3 × 2 = −6。</p>
+    <p>用一句話說：<b>某個數字的梯度 ＝ 它讓下一步變多少 × 下一步的梯度。</b>從最後的 L 開始（L 自己加 1，L 當然多 1，所以梯度是 1），一步一步往回算。這就是<b>反向傳播</b>。</p>
   </div>
 
   <div class="trial" id="trial-2">
     <span class="trial-tag">試煉</span><span class="stamp" aria-hidden="true">導</span>
-    <p class="trial-goal">親手做一次反向傳播：依序算出五個節點的梯度。</p>
-    <p class="muted">黃色的節點是現在要算的。算完後會用 <code>src/value.ts</code> 的引擎對答案。</p>
-    <p id="l2-q" class="mono"></p>
+    <p class="trial-goal">從 L 往回推，依序算出六個數字的梯度。</p>
+    <p class="muted">黃色的方塊是現在要算的。答錯會出現提示。隨時可以用上面的「加 1」實驗對答案。</p>
+    <p id="l2-q"></p>
     <div class="choices" id="l2-choices"></div>
     <div class="feedback" id="l2-fb"></div>
     <div class="row"><button class="btn" id="l2-new">換一組數字</button></div>
@@ -302,7 +318,8 @@ pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14
 
   <div class="block">
     <h2>為什麼這招這麼重要</h2>
-    <p>你剛才每個節點只算了一次，後面算好的梯度直接被前面重複利用。所以不管有多少參數，一次 forward 加一次 backward 就能拿到<b>全部</b>的梯度。少了它，二十幾萬個參數得一個一個試，訓練永遠跑不完。</p>
+    <p>你剛才每個方塊只算了一次，而且後面算好的梯度直接被前面拿去用。所以不管有幾個旋鈕，機器正著算一遍、再倒著推一遍，就拿到<b>全部</b>的梯度。專案裡的 <code>src/value.ts</code> 做的就是你剛才手算的事，只是交給電腦自動做，所以叫 autograd（自動算梯度）。</p>
+    <p class="muted">學過微積分的話：梯度就是偏微分，「把影響乘回去」就是連鎖律。沒學過也完全不影響後面的關卡。</p>
   </div>
 
   <div class="foot">
@@ -316,7 +333,7 @@ pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14
   <div class="head">
     <p class="eyebrow">第三關 · OPTIMIZER</p>
     <h1>順著梯度下山</h1>
-    <p class="lead">有了梯度，更新規則只有一行：<code>w ← w − 學習率 × 梯度</code>。梯度指向誤差上升最快的方向，所以往反方向走。</p>
+    <p class="lead">有了梯度，更新規則只有一行：<code>新的 w = w − 學習率 × 梯度</code>。梯度是正的（加 1 會變糟）就調小，梯度是負的就調大。學習率決定一次調多少。</p>
     <p>先用最小的例子體會：用一條直線 <code>y = w·x + b</code> 去貼合五個點。只有 <code>w</code>、<code>b</code> 兩個參數，可以把誤差（loss）直接畫成地形圖。</p>
   </div>
 
@@ -443,7 +460,9 @@ pre { margin: 0; background: var(--sunken); border-radius: 4px; padding: 12px 14
     <p class="eyebrow">第六關 · TRAINING</p>
     <h1>開始訓練</h1>
     <p class="lead">零件都齊了。訓練資料不需要人工標註：答案就是同一首詩往後移一格。看到「春」要猜「眠」，看到「春眠」要猜「不」。</p>
-    <p>誤差用 <b>cross-entropy</b> 衡量：模型給正確答案的機率取 −log。字表有 1,001 個字時，完全亂猜的 loss 是 <code>ln(1001) ≈ 6.91</code>。每一步做四件事：forward 算 loss、backward 算梯度、裁剪過大的梯度、Adam 更新參數。</p>
+    <p>猜得有多差，用一個叫 <b>loss</b> 的分數衡量。它只看一件事：模型給「正確答案」多少機率。給 100% 時 loss 是 0；給的機率越低，loss 越大。字表有 1,001 個字，完全亂猜等於每個字給約 0.1%，這時 loss 大約是 6.91。訓練的目標就是把這個數字壓低。</p>
+    <p>每一步做四件事：正著算出 loss、倒著推出每個旋鈕的梯度（第二關）、擋掉過大的梯度、照梯度更新旋鈕（第三關）。</p>
+    <p class="muted">學過對數的話：這個分數的算法是 −ln(正確答案的機率)，稱為 cross-entropy，亂猜時就是 ln(1001)。</p>
   </div>
 
   <div class="block">
